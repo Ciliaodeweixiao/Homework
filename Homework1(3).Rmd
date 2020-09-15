@@ -1,0 +1,179 @@
+---
+title: "Homework1"
+date: "2020/9/14"
+output: 
+  html_document:
+    df_print: paged
+    theme: flatly
+    highlight: pygments
+    toc: yes
+    toc_float: true
+    code_download: FALSE
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(tidyverse)
+library(DT)
+library(forecast)
+library(lubridate)
+library(timeSeries)
+```
+
+# step1
+
+```{r}
+file.rename(from ="D:/Rworkspace/datasets/illinois-history.csv",to="D:/Rworkspace/datasets/ILCovid19.csv" )
+```
+
+
+```{r}
+data <- readr::read_csv("D:/Rworkspace/datasets/ILCovid19.csv")
+head(data)
+colnames(data)
+```
+
+# step2
+
+```{r}
+arrange_data <- data %>% arrange(date)
+arrange_data %>% datatable()
+```
+
+```{r}
+select_data <- arrange_data %>% select(Date=date,Total_Cases=positiveCasesViral,Total_Deaths=death,
+                                  Total_Tests=totalTestsViral,Current_Hospitalizations=hospitalizedCurrently,
+                                  Current_ICU_Usage=inIcuCurrently,New_case=positiveIncrease)
+select_data %>% datatable()
+```
+
+
+```{r}
+ILCovid19 <- select_data %>% mutate(
+  Percentage_Positive=ma(Total_Cases/Total_Tests,7),
+  Percentage_of_Current_Hospitalizations=ma(Current_Hospitalizations/New_case,7),
+  Percentage_of_Current_Hospitalizations_in_ICU=ma(Current_ICU_Usage/Current_Hospitalizations,7)
+)
+ILCovid19 %>% datatable()
+```
+
+# step3 plot
+
+## picture1
+
+
+```{r}
+ILCovid19$Date <-  seq.Date(from = as.Date("2020/03/04",format = "%Y/%m/%d"), by = "day", length.out = 194)
+tail(ILCovid19$Date)
+```
+
+
+
+```{r}
+max(ILCovid19$Percentage_Positive,na.rm = T)
+```
+
+
+
+
+```{r}
+ggplot(data = ILCovid19)+
+  geom_line(aes(x=Date,y=Percentage_Positive),color="steelblue")+
+  geom_hline(aes(yintercept=0.8*max(ILCovid19$Percentage_Positive,na.rm = T)),color="orange")+
+  scale_y_continuous(breaks = seq(0,0.160,0.01))+
+  scale_x_date(date_breaks = "1 week",limits = c(ymd(20200304),ymd(20200913)))+
+  labs(title = "Percentage Positive",y="Percentage")+
+  theme(plot.title = element_text(size=20,face ="bold",hjust = 0.5),
+        axis.text.x = element_text(angle = 90,vjust = 0.5))
+```
+
+## picture2
+
+```{r}
+ILCovid19 %>% slice(144:175) ->J25_A25
+J25_A25 %>% datatable()
+```
+
+```{r}
+max(J25_A25$Percentage_Positive)
+```
+
+
+```{r}
+ggplot(data = J25_A25)+
+  geom_line(aes(x=Date,y=Percentage_Positive),color="steelblue")+
+  scale_y_continuous(breaks = seq(0,0.089,0.005))+
+  scale_x_date(date_breaks = "1 week")+
+  labs(title = "July25-August25 Percentage Positive",y="Percentage")+
+  theme(plot.title = element_text(size=20,face ="bold",hjust = 0.5))
+```
+
+
+
+## picture3
+
+```{r}
+max(ILCovid19$Percentage_of_Current_Hospitalizations,na.rm = T)
+```
+
+```{r}
+ggplot(data = ILCovid19)+
+  geom_line(aes(x=Date,y=Percentage_of_Current_Hospitalizations),color="steelblue")+
+  scale_y_continuous(breaks = seq(0,3.364,0.2))+
+  scale_x_date(date_breaks = "1 week")+
+  labs(title = "Percentage of Current Hospitalizations",y="Percentage")+
+  theme(plot.title = element_text(size=20,face ="bold",hjust = 0.5),
+        axis.text.x = element_text(angle = 90,vjust = 0.5))
+```
+
+## picture4
+
+```{r}
+max(J25_A25$Percentage_of_Current_Hospitalizations ,na.rm = T)
+```
+
+
+```{r}
+ggplot(data = J25_A25)+
+  geom_line(aes(x=Date,y=Percentage_of_Current_Hospitalizations),color="steelblue")+
+  scale_y_continuous(breaks = seq(0,1.055,0.02))+
+  scale_x_date(date_breaks = "1 week")+
+  labs(title = "July25-August25 Percentage Positive",y="Percentage")+
+  theme(plot.title = element_text(size=20,face ="bold",hjust = 0.5))
+```
+
+## picture5 
+
+```{r}
+max(ILCovid19$Percentage_of_Current_Hospitalizations_in_ICU,na.rm = T)
+```
+
+
+```{r}
+ggplot(data = ILCovid19)+
+  geom_line(aes(x=Date,y=Percentage_of_Current_Hospitalizations_in_ICU),color="steelblue")+
+  scale_y_continuous(breaks = seq(0,0.337,0.01))+
+  scale_x_date(date_breaks = "1 week")+
+  labs(title = "Percentage of Current Hospitalizations in ICU",y="Percentage")+
+  theme(plot.title = element_text(size=20,face ="bold",hjust = 0.5),
+        axis.text.x = element_text(angle = 90,vjust = 0.5))
+```
+
+## picture6
+
+```{r}
+max(J25_A25$Percentage_of_Current_Hospitalizations_in_ICU,na.rm = T)
+```
+
+```{r}
+ggplot(data = J25_A25 )+
+  geom_line(aes(x=Date,y=Percentage_of_Current_Hospitalizations_in_ICU),color="steelblue")+
+  scale_y_continuous(breaks = seq(0,0.265,0.01))+
+  scale_x_date(date_breaks = "1 week")+
+  labs(title = "Percentage of Current Hospitalizations in ICU",y="Percentage")+
+  theme(plot.title = element_text(size=20,face ="bold",hjust = 0.5))
+```
+
